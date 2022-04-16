@@ -1,0 +1,8 @@
+name = "TimeTrialOptimization"
+uuid = "b1c9b1d5-87d1-4189-aa25-5a5cd7607c4a"
+authors = ["gerryflap <gerry2211@gmail.com>"]
+version = "1.0.0"
+
+[deps]
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+SimulatedAnnealing = "2d65f8b7-1b20-4058-bb07-eb82d048feb8"

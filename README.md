@@ -4,18 +4,18 @@ A small exploratory project to evaluate the viability of applying simulated anne
 Intended features:
 - [x] Grid world
 - [x] Apply SA to grid world
-- [ ] Update installation instructions
+- [x] Update installation instructions
 - [ ] Command line parameters (to switch between envs and supply some parameters for SA)
 - [ ] Racing environment
 - [ ] Apply SA to racing environment
 
 
 ## Running
-Incomplete! You need to manually add `https://github.com/Gerryflap/JuliaSimulatedAnnealing` and run `Pkg.instantiate()`. Will update soon(tm).
 - Clone repo
 - Open `julia` in root repo directory
 - type `] activate .`
-- In the REPL run `using TimeTrialOptimization`
+- run `import Pkg` and `Pkg.instantiate()`
+- Run `using TimeTrialOptimization` to start the program
 
 ## Example graph
 Example graph of energy over the course of training:

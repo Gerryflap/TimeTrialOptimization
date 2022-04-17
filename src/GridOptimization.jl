@@ -1,4 +1,4 @@
-module TimeTrialOptimization
+module GridOptimization
     include("GridEnv.jl")
     using .GridEnv.BaseEnv
     using .GridEnv.Evaluator

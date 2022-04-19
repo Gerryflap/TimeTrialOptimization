@@ -8,9 +8,11 @@ module RocketOptimization
     # Let's define a track
     track = RaceTrack(
         [
-            CheckPoint(30, 10, 5),
-            CheckPoint(30, 30, 5),
-            CheckPoint(10, 10, 5),
+            CheckPoint(10, 30, 1),
+            CheckPoint(40, 30, 1),
+            CheckPoint(30, 20, 1),
+            CheckPoint(50, 10, 1),
+            CheckPoint(10, 20, 1),
         ],
         (3, 3),
         50,
@@ -74,6 +76,7 @@ module RocketOptimization
     end
 
     # Modify n actions in the list by choosing a random different action
+    # Additionally, with a small chance, shift the whole future move list a few places from a given index
     function neighbour_fn(actionList::ActionList)
         actions = copy(actionList.actions)
         n_mods = rand(1:n_modifications_per_step)
@@ -86,6 +89,17 @@ module RocketOptimization
             action = Action(new_angle, new_throttle)
             actions[i] = action
         end
+
+        if rand() < 0.05
+            i = rand(6:length(actions))
+            delta = rand(1:5)
+            actions[(i-delta):end-delta] = actions[i:end]
+        elseif rand() < 0.05
+            i = rand(1:length(actions)-6)
+            delta = rand(1:5)
+            actions[(i+delta):end] = actions[i:end-delta]
+        end
+
         return ActionList(actions)
     end
 
@@ -94,7 +108,7 @@ module RocketOptimization
         temperature_fn,
         energy_fn,
         neighbour_fn,
-        500000
+        1000000
     )
 
     # Generate random initial state
@@ -124,12 +138,40 @@ module RocketOptimization
     display(plt)
 
     plt2 = plot(
-        res.trajectory[:, 2],
         res.trajectory[:, 1],
+        res.trajectory[:, 2],
         title="Trajectory visualized",
+        m=2,
         xlabel="x",
         ylabel="y",
         legend=false
     )
+
+    plot!(plt2,
+        [track.start[1]],
+        [track.start[2]],
+        m=20,
+        color="Green",
+        alpha=0.2
+    )
+
+    plot!(plt2,
+        [cp.x for cp in track.checkpoints[1:end-1]],
+        [cp.y for cp in track.checkpoints[1:end-1]],
+        m=20,
+        color="Orange",
+        alpha=0.2,
+        lw=0
+    )
+
+    plot!(plt2,
+        [track.checkpoints[end].x],
+        [track.checkpoints[end].y],
+        m=20,
+        color="Red",
+        alpha=0.2
+    )
+
+
     display(plt2)
 end # module

@@ -7,8 +7,9 @@
 module BaseEnv
     export RocketState, Action, CheckPoint, RaceTrack, clip_action, step!
 
-    THROTTLE_ACC = 0.1  # Units/frame (speed) per frame
-    RESISTANCE_MULTIPLIER = 0.9 # Air resistance multiplier
+    THROTTLE_ACC = 0.2  # Units/frame (speed) per frame
+    BRAKE_MULT = 0.8  # Speed multiplier when braking
+    RESISTANCE_MULTIPLIER = 0.995 # Air resistance multiplier
     ROTATION_PER_FRAME = pi/20 # Max rotation per frame
 
     mutable struct RocketState
@@ -33,6 +34,8 @@ module BaseEnv
         angle_change :: Float64
         # Positive value between [0 , 1] where 0 is no throttle and 1 is full throttle
         throttle :: Float64
+        # Positive value between [0 , 1] where 0 is no brake and 1 is full brake
+        brake :: Float64
     end
 
     # Checkpoint for the center of the rocket to pass through. Radius indicates the detection/acceptance radius
@@ -54,7 +57,8 @@ module BaseEnv
     function clip_action(a :: Action) :: Action
         return Action(
             clamp(a.angle_change, -1, 1),
-            clamp(a.throttle, 0, 1)
+            clamp(a.throttle, 0, 1),
+            clamp(a.brake, 0, 1)
         )
     end
 
@@ -77,6 +81,10 @@ module BaseEnv
         # Apply throttle to velocities
         s.vx += cos(s.angle) * a.throttle * THROTTLE_ACC
         s.vy += sin(s.angle) * a.throttle * THROTTLE_ACC
+
+        # Brake
+        s.vx *= (BRAKE_MULT * a.brake) + (1.0-a.brake)
+        s.vy *= BRAKE_MULT * a.brake + (1.0-a.brake)
 
         # Move
         s.x += s.vx

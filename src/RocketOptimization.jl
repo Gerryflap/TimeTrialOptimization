@@ -5,18 +5,30 @@ module RocketOptimization
     import SimulatedAnnealing
     using Plots
 
+    # # Let's define a track
+    # track = RaceTrack(
+    #     [
+    #         CheckPoint(10, 30, 1),
+    #         CheckPoint(40, 30, 1),
+    #         CheckPoint(30, 20, 1),
+    #         CheckPoint(50, 10, 1),
+    #         CheckPoint(10, 20, 1),
+    #     ],
+    #     (3, 3),
+    #     50,
+    #     50
+    # )
+
     # Let's define a track
     track = RaceTrack(
         [
-            CheckPoint(10, 30, 1),
-            CheckPoint(40, 30, 1),
-            CheckPoint(30, 20, 1),
-            CheckPoint(50, 10, 1),
-            CheckPoint(10, 20, 1),
+            CheckPoint(200, 10, 3),
+            CheckPoint(10, 20, 3),
+            CheckPoint(300, 30, 3),
         ],
         (3, 3),
-        50,
-        50
+        310,
+        40
     )
 
 
@@ -24,7 +36,7 @@ module RocketOptimization
     n_modifications_per_step = 1
 
     # Length of the trajectory/action list
-    trajectory_length = 300
+    trajectory_length = 200
 
     function distance(pos1::Tuple{Float64, Float64}, pos2::Tuple{Float64, Float64}) :: Float64
         x1, y1 = pos1
@@ -54,11 +66,13 @@ module RocketOptimization
 
     # Energy function that rewards speed when finished and closeness to finish when not finished
     function energy_fn(actionList::ActionList) :: Float64
-        result :: EvalResult = evaluate(actionList.actions, track)
-        energy_steps = result.steps_till_end
-        if result.final_s.dead
-            energy_steps = length(actionList.actions)
+        result :: EvalResult = evaluate(actionList.actions, track; collect_trajectory=true)
+
+        checkpoint_frame_scores = copy(result.steps_between_checkpoints)
+        if !result.final_s.finished
+            checkpoint_frame_scores[result.final_s.current_checkpoint:end] .= length(actionList.actions)
         end
+        energy_steps = sum(checkpoint_frame_scores)
 
         energy_dist = 0.0
         if !result.final_s.finished
@@ -79,25 +93,37 @@ module RocketOptimization
     # Additionally, with a small chance, shift the whole future move list a few places from a given index
     function neighbour_fn(actionList::ActionList)
         actions = copy(actionList.actions)
+
+        # Adjust some actions
         n_mods = rand(1:n_modifications_per_step)
         for _ in 1:n_mods
             i = rand(1:length(actions))
-            angle_upd = (rand() * 2.0 - 1.0) * 0.1
-            throttle_upd = (rand() * 2.0 - 1.0) * 0.1
+            angle_upd = (rand() * 2.0 - 1.0) * 0.2
+            throttle_upd = (rand() * 2.0 - 1.0) * 0.2
+            brake_upd = (rand() * 2.0 - 1.0) * 0.2
             new_angle = clamp(actions[i].angle_change + angle_upd, -1, 1) 
             new_throttle = clamp(actions[i].throttle + throttle_upd, 0, 1)
-            action = Action(new_angle, new_throttle)
+            new_brake = clamp(actions[i].brake + brake_upd, 0, 1)
+            action = Action(new_angle, new_throttle, new_brake)
             actions[i] = action
         end
 
+        # Shift all later actions than a random index up or down
         if rand() < 0.05
-            i = rand(6:length(actions))
-            delta = rand(1:5)
+            delta = rand(1:15)
+            i = rand(1+delta:length(actions))
             actions[(i-delta):end-delta] = actions[i:end]
         elseif rand() < 0.05
-            i = rand(1:length(actions)-6)
-            delta = rand(1:5)
+            delta = rand(1:15)
+            i = rand(1:length(actions)-delta-1)
             actions[(i+delta):end] = actions[i:end-delta]
+        end
+
+        # Set some actions to zero
+        if rand() < 0.05
+            len = rand(1:30)
+            i = rand(1:(length(actions) - len))
+            actions[i:(i+len-1)] = [Action(0, 0, 0) for _ in 1:len]
         end
 
         return ActionList(actions)
@@ -108,14 +134,14 @@ module RocketOptimization
         temperature_fn,
         energy_fn,
         neighbour_fn,
-        1000000
+        10000000
     )
 
     # Generate random initial state
     # initial_state = ActionList([Action(rand() * 2 - 1, rand() * 0.01) for _ in 1:trajectory_length])
 
     # Generate 0 input starting state
-    initial_state = ActionList([Action(0, 0) for _ in 1:trajectory_length])
+    initial_state = ActionList([Action(0, 0, 0) for _ in 1:trajectory_length])
 
 
     # Apply the algorithm
